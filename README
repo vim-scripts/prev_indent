@@ -1,0 +1,62 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=4575
+
+This script provides 2 utility commands PrevIndent and AlignWith for doing
+custom indentation tricks with line under cursor in Insert and Normal modes.
+Originally there was only one of them: PrevIndent, and that explains the name
+of the script.
+
+Command PrevIndent moves line under cursor to the previous indentation
+level. Normally this command is not really needed as soon as indentation
+levels in most file types tend to correspond to the value of the
+shiftwidth and the result is easily achieved by pressing <C-d> in Insert
+mode. But this is not a case for some programming languages (for example
+Haskell indentation rules are very specific).
+
+Command PrevIndent simply aligns the beginning of the current line with
+the first previous line that starts from a less position.
+
+Recommended mappings are
+
+Insert mode:
+
+    imap <silent> <C-d>       <Plug>PrevIndent
+
+if you want to replace with PrevIndent standard <C-d> Insert mapping or
+
+    imap <silent> <C-g><C-g>  <Plug>PrevIndent
+
+(press <C-g> twice) otherwise.
+
+Normal mode:
+
+    nmap <silent> <C-k>k      :PrevIndent<CR>
+
+Another command provided by the script is AlignWith. It finds a symbol
+that was specified by user dynamically (i.e. using getchar()) in the right
+hand side of the previous line and aligns beginning of the current line
+with the column of the found symbol. If a symbol was not found then it is
+searched from beginning of the previous line. Repeating AlignWith will
+cycle alignment of the current line to the right through all searched
+symbols in the previous line. User can specify an order of symbol to
+search. For example issuing command
+
+    :AlignWith 2
+
+and then pressing '(' will skip first found '(' in the previous line and
+align current line to the second found parenthesis.
+
+Recommended mappings are
+
+Insert mode:
+
+    imap <silent> <C-g>g      <Plug>AlignWith
+
+Normal mode:
+
+    nmap <silent> <C-k>g      :AlignWith<CR>
+
+In both Insert and Normal modes command AlignWith will wait until user
+enters a character to align with. So for example in Insert mode user must
+enter <C-g>g and another character after that.
+
+Both commands must behave well for different settings of <Tab> expansions.
