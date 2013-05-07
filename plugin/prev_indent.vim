@@ -1,6 +1,6 @@
 " File: prev_indent.vim
 " Author: Alexey Radkov
-" Version: 0.1
+" Version: 0.1.1
 " Description: A function to move to the previous indentation level
 " Usage:
 "   Command :PrevIndent to move to the previous indent level. Normally this
@@ -12,7 +12,10 @@
 "   Command :PrevIndent simply aligns the beginning of the current line with
 "   the first previous line that starts from a less position.
 "
-"   The command is supposed to be used in Insert mode. Recommended mappings:
+"   The command is supposed to be used in Insert and Normal modes.
+"   Recommended mappings are
+"
+"   Insert mode:
 "
 "       imap <silent> <C-g><C-g>  <Plug>PrevIndent
 "
@@ -21,6 +24,10 @@
 "       imap <silent> <C-g><C-g>  <Plug>PrevIndent
 "
 "   (press <C-g> twice) otherwise.
+"
+"   Normal mode:
+"
+"       nmap <silent> <C-k>g      :PrevIndent<CR>
 
 
 if exists('g:loaded_PrevIndentPlugin') && g:loaded_PrevIndentPlugin
@@ -29,7 +36,7 @@ endif
 
 let g:loaded_PrevIndentPlugin = 1
 
-function! s:prev_indent()
+function! s:prev_indent(...)
     let save_cursor = getpos('.')
     normal ^
     let start_pos = virtcol('.') - 1
@@ -52,12 +59,12 @@ function! s:prev_indent()
     endwhile
     call setpos('.', save_cursor)
     exe 's/^\s\+/'.subst.'/'
-    let save_cursor[2] -= rstart_pos - rcur_start_pos + 1
+    let save_cursor[2] -= rstart_pos - rcur_start_pos + (a:0 ? a:1 : 0)
     call setpos('.', save_cursor)
     return ''
 endfunction
 
-command! PrevIndent call s:prev_indent()
+command! -nargs=* PrevIndent  call s:prev_indent(<f-args>)
 
-imap <silent> <Plug>PrevIndent  <C-r>=<SID>prev_indent()<CR><Right>
+imap <silent> <Plug>PrevIndent  <C-r>=<SID>prev_indent(1)<CR><Right>
 
