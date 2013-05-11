@@ -1,6 +1,6 @@
 " File: prev_indent.vim
 " Author: Alexey Radkov
-" Version: 0.2
+" Version: 0.2.1
 " Description: Utility functions for custom indentation of line under cursor
 " Usage:
 "   Command PrevIndent moves line under cursor to the previous indentation
@@ -95,6 +95,7 @@ function! s:prev_indent(...)
 endfunction
 
 function! s:align_with(symb, ...)
+    let add_getchar_shift = a:0 > 0 && a:1 ? 1 : 0
     let save_cursor = getpos('.')
     let add_rstart_pos = getline('.') =~ '^\s*$' && col('.') == col('$') ?
                 \ 1 : 0
@@ -102,6 +103,7 @@ function! s:align_with(symb, ...)
     normal ^
     let start_pos = virtcol('.') - 1 + add_rstart_pos
     let rstart_pos = col('.') - 1 + add_rstart_pos
+    let save_start_pos = 0
     normal k
     let last_symb_match = (col('.') + add_rstart_pos >= col('$') - 1) &&
                 \ getline('.')[col('$') - 2] == a:symb
@@ -109,33 +111,41 @@ function! s:align_with(symb, ...)
     if add_rstart_pos == 1
         normal l
     endif
+    let n_repeat = a:0 > 1 && a:2 =~ '^\d\+$' && a:2 > 0 ? a:2 : 1
+    let save_n_repeat = n_repeat
     let save_cursor1 = getpos('.')
-    if getline('.')[col('.') - 1] != a:symb
-        exe 'normal '.(a:0 > 1 ? a:2 : '').'f'.a:symb
+    if getline('.')[col('.') - 1] == a:symb
+        let n_repeat -= 1
     endif
+    if n_repeat > 0
+        exe 'normal '.n_repeat.'f'.a:symb
+    endif
+    let n_repeat = save_n_repeat
     if (col('.') == save_cursor1[2] &&
                 \ getline('.')[col('.') - 1] != a:symb) || last_symb_match
         normal ^
         let save_cursor1 = getpos('.')
-        if getline('.')[col('.') - 1] != a:symb
-            exe 'normal '.(a:0 > 1 ? a:2 : '').'f'.a:symb
+        if getline('.')[col('.') - 1] == a:symb
+            let n_repeat -= 1
+        endif
+        if n_repeat > 0
+            exe 'normal '.n_repeat.'f'.a:symb
+        endif
+        if col('.') == save_cursor1[2] && n_repeat > 0
+            let save_start_pos = 1
         endif
         if col('.') == save_cursor1[2] && getline('.')[col('.') - 1] != a:symb
-            if a:0 > 0 && a:1
-                let save_cursor[2] += 1
-            endif
+            let save_cursor[2] += add_getchar_shift
             call setpos('.', save_cursor)
             return ''
         endif
     endif
     let cur_start_pos = virtcol('.') - 1
     call setpos('.', save_cursor)
-    let offset = cur_start_pos - start_pos
+    let offset = save_start_pos ? 0 : cur_start_pos - start_pos
     if offset == 0
-        if a:0 > 0 && a:1
-            let save_cursor[2] += 1
-            call setpos('.', save_cursor)
-        endif
+        let save_cursor[2] += add_getchar_shift
+        call setpos('.', save_cursor)
         return ''
     endif
     if offset > 0
