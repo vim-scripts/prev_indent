@@ -1,6 +1,6 @@
 " File: prev_indent.vim
 " Author: Alexey Radkov
-" Version: 0.2.1
+" Version: 0.2.2
 " Description: Utility functions for custom indentation of line under cursor
 " Usage:
 "   Command PrevIndent moves line under cursor to the previous indentation
@@ -71,22 +71,32 @@ function! s:prev_indent(...)
     normal ^
     let start_pos = virtcol('.') - 1
     if start_pos == 0
+        let save_cursor[2] -= a:0 ? a:1 : 0
+        call setpos('.', save_cursor)
         return ''
     endif
     let rstart_pos = col('.') - 1
     let cur_start_pos = 0
-    let cur_lnum = line('.') - 1
     let subst = ''
-    while cur_lnum > 0
+    let pass = 0
+    while line('.') > 1
         normal k^
+        if getline('.') =~ '^\s*$'
+            continue
+        endif
         let cur_start_pos = virtcol('.') - 1
         let rcur_start_pos = col('.') - 1
         if cur_start_pos < start_pos
             let subst = substitute(getline('.'), '\S.*', '', '')
+            let pass = 1
             break
         endif
-        let cur_lnum -= 1
     endwhile
+    if !pass
+        let save_cursor[2] -= a:0 ? a:1 : 0
+        call setpos('.', save_cursor)
+        return ''
+    endif
     call setpos('.', save_cursor)
     exe 's/^\s\+/'.subst.'/'
     let save_cursor[2] -= rstart_pos - rcur_start_pos + (a:0 ? a:1 : 0)
@@ -104,7 +114,20 @@ function! s:align_with(symb, ...)
     let start_pos = virtcol('.') - 1 + add_rstart_pos
     let rstart_pos = col('.') - 1 + add_rstart_pos
     let save_start_pos = 0
-    normal k
+    let pass = 0
+    while line('.') > 1
+        normal k
+        if getline('.') =~ '^\s*$'
+            continue
+        endif
+        let pass = 1
+        break
+    endwhile
+    if !pass
+        let save_cursor[2] += add_getchar_shift
+        call setpos('.', save_cursor)
+        return ''
+    endif
     let last_symb_match = (col('.') + add_rstart_pos >= col('$') - 1) &&
                 \ getline('.')[col('$') - 2] == a:symb
     normal l
@@ -156,7 +179,7 @@ function! s:align_with(symb, ...)
     retab!
     normal ^
     let save_cursor[2] += col('.') - 1 - rstart_pos + add_rstart_pos +
-                \ (a:0 > 0 && a:1 ? 1 : 0)
+                \ add_getchar_shift
     call setpos('.', save_cursor)
     return ''
 endfunction
