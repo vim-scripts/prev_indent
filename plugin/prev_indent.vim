@@ -1,6 +1,6 @@
 " File: prev_indent.vim
 " Author: Alexey Radkov
-" Version: 0.2.2
+" Version: 0.3
 " Description: Utility functions for custom indentation of line under cursor
 " Usage:
 "   Command PrevIndent moves line under cursor to the previous indentation
@@ -66,12 +66,12 @@ endif
 
 let g:loaded_PrevIndentPlugin = 1
 
-function! s:prev_indent(...)
+function! s:prev_indent()
     let save_cursor = getpos('.')
+    let save_winline = winline()
     normal ^
     let start_pos = virtcol('.') - 1
     if start_pos == 0
-        let save_cursor[2] -= a:0 ? a:1 : 0
         call setpos('.', save_cursor)
         return ''
     endif
@@ -93,23 +93,30 @@ function! s:prev_indent(...)
         endif
     endwhile
     if !pass
-        let save_cursor[2] -= a:0 ? a:1 : 0
         call setpos('.', save_cursor)
         return ''
     endif
     call setpos('.', save_cursor)
     exe 's/^\s\+/'.subst.'/'
-    let save_cursor[2] -= rstart_pos - rcur_start_pos + (a:0 ? a:1 : 0)
+    let save_cursor[2] -= rstart_pos - rcur_start_pos
+    if save_cursor[2] < 1
+        let save_cursor[2] = 1
+    endif
     call setpos('.', save_cursor)
+    let scroll = winline() - save_winline
+    if scroll != 0
+        exe 'normal '.abs(scroll).(scroll > 0 ? '': '')
+        " by some reason scrolling may move cursor left if it was in the
+        " rightmost position: restore it
+        call setpos('.', save_cursor)
+    endif
     return ''
 endfunction
 
 function! s:align_with(symb, ...)
-    let add_getchar_shift = a:0 > 0 && a:1 ? 1 : 0
     let save_cursor = getpos('.')
     let add_rstart_pos = getline('.') =~ '^\s*$' && col('.') == col('$') ?
                 \ 1 : 0
-    let save_cursor[2] -= 1
     normal ^
     let start_pos = virtcol('.') - 1 + add_rstart_pos
     let rstart_pos = col('.') - 1 + add_rstart_pos
@@ -124,7 +131,6 @@ function! s:align_with(symb, ...)
         break
     endwhile
     if !pass
-        let save_cursor[2] += add_getchar_shift
         call setpos('.', save_cursor)
         return ''
     endif
@@ -134,7 +140,7 @@ function! s:align_with(symb, ...)
     if add_rstart_pos == 1
         normal l
     endif
-    let n_repeat = a:0 > 1 && a:2 =~ '^\d\+$' && a:2 > 0 ? a:2 : 1
+    let n_repeat = a:0 && a:1 > 0 ? a:1 : 1
     let save_n_repeat = n_repeat
     let save_cursor1 = getpos('.')
     if getline('.')[col('.') - 1] == a:symb
@@ -158,7 +164,6 @@ function! s:align_with(symb, ...)
             let save_start_pos = 1
         endif
         if col('.') == save_cursor1[2] && getline('.')[col('.') - 1] != a:symb
-            let save_cursor[2] += add_getchar_shift
             call setpos('.', save_cursor)
             return ''
         endif
@@ -167,7 +172,6 @@ function! s:align_with(symb, ...)
     call setpos('.', save_cursor)
     let offset = save_start_pos ? 0 : cur_start_pos - start_pos
     if offset == 0
-        let save_cursor[2] += add_getchar_shift
         call setpos('.', save_cursor)
         return ''
     endif
@@ -178,8 +182,7 @@ function! s:align_with(symb, ...)
     endif
     retab!
     normal ^
-    let save_cursor[2] += col('.') - 1 - rstart_pos + add_rstart_pos +
-                \ add_getchar_shift
+    let save_cursor[2] += col('.') - 1 - rstart_pos + add_rstart_pos
     call setpos('.', save_cursor)
     return ''
 endfunction
@@ -189,12 +192,12 @@ function! s:getchar_align_with(...)
         call getchar()
     endwhile
     let symb = nr2char(getchar())
-    return s:align_with(symb, 1, a:0 ? a:1 : 1)
+    return s:align_with(symb, a:0 ? a:1 : 1)
 endfunction
 
-command! -nargs=* PrevIndent  call s:prev_indent(<f-args>)
+command!          PrevIndent  call s:prev_indent()
 command! -nargs=? AlignWith   call s:getchar_align_with(<f-args>)
 
-imap <silent> <Plug>PrevIndent  <C-r>=<SID>prev_indent(1)<CR><Right>
-imap <silent> <Plug>AlignWith   <C-r>=<SID>getchar_align_with()<CR><Right>
+imap <silent> <Plug>PrevIndent  <C-r>=<SID>prev_indent()<CR>
+imap <silent> <Plug>AlignWith   <C-r>=<SID>getchar_align_with()<CR>
 
